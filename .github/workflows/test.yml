@@ -11,6 +11,6 @@ on:
 
 jobs:
   test:
-    uses: andreaTP/std-uritemplate/.github/workflows/test.yml@extract-csharp
     # TODO: fix me
     # uses: std-uritemplate/std-uritemplate/.github/workflows/test.yml@main
+    uses: andreaTP/std-uritemplate/.github/workflows/test.yml@extract-csharp
