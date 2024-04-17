@@ -1,13 +1,13 @@
 name: Test
 
 on:
-  workflow_call:
   push:
-    branches:
-      - main
-  pull_request:
-    paths-ignore:
-      - '**.md'
+  # TODO: restore me
+  #   branches:
+  #     - main
+  # pull_request:
+  #   paths-ignore:
+  #     - '**.md'
 
 jobs:
   test:
