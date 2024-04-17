@@ -2,11 +2,12 @@ name: Test
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    paths-ignore:
-      - '**.md'
+  # TEST: REVERT ME
+  #   branches:
+  #     - main
+  # pull_request:
+  #   paths-ignore:
+  #     - '**.md'
 
 jobs:
   test:
