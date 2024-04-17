@@ -1,0 +1,37 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Common - Checkout main std-uritemplate repo
+        uses: actions/checkout@v4
+        with:
+          repository: std-uritemplate/std-uritemplate
+          submodules: 'true'
+      - name: Fixup the csharp folder
+        run: rm -rf csharp
+      - name: Common - Checkout the C# implementation
+        uses: actions/checkout@v4
+        with:
+          path: csharp
+      # Language specific setup
+
+      # C# setup
+      - name: C# - Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8
+
+      # Common testing
+      - name: Common - Run Tests for C#
+        run: ./tests/test.sh csharp
