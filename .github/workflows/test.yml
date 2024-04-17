@@ -1,16 +1,63 @@
 name: Test
 
 on:
+  workflow_call:
   push:
-  # TEST: REVERT ME
-  #   branches:
-  #     - main
-  # pull_request:
-  #   paths-ignore:
-  #     - '**.md'
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - '**.md'
 
 jobs:
   test:
-    # TODO: fix me
-    # uses: std-uritemplate/std-uritemplate/.github/workflows/test.yml@main
-    uses: andreaTP/std-uritemplate/.github/workflows/test.yml@extract-csharp
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - java
+          - python
+          - typescript
+          - typescript-mjs
+          - go
+          - csharp
+          - ruby
+          - php
+          - swift
+          - dart
+        php-version:
+          - '7.4'
+          - '8.2'
+        exclude:
+          - php-version: '8.2'
+        include:
+          - language: php
+            php-version: '7.4'
+          - language: php
+            php-version: '8.2'
+    steps:
+      - name: Common - Checkout main std-uritemplate repo
+        uses: actions/checkout@v4
+        with:
+          repository: std-uritemplate/std-uritemplate
+          submodules: 'true'
+      - name: Fixup the csharp folder
+        run: rm -rf csharp
+      - name: Common - Checkout
+        uses: actions/checkout@v4
+        with:
+          path: csharp
+      # Language specific setup
+
+      # C# setup
+      - name: C# - Setup .NET
+        uses: actions/setup-dotnet@v4
+        if: matrix.language == 'csharp'
+        with:
+          dotnet-version: 8
+
+      # Common testing
+      - name: Common - Run Tests for ${{ matrix.language }}
+        run: ./tests/test.sh ${{ matrix.language }}
