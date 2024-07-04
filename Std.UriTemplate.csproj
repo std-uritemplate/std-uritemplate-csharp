@@ -54,11 +54,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-
-    <None Include="LICENSE">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
   </ItemGroup>
 
   <Target Name="PreparePackageReleaseNotesFromFile" BeforeTargets="GenerateNuspec">
