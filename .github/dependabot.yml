@@ -5,6 +5,6 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "nuget"
-    directory: "/csharp"
+    directory: "/"
     schedule:
       interval: "daily"
