@@ -24,15 +24,6 @@ class Program
             string jsonData = File.ReadAllText(dataFile);
             var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonData, new DictionaryConverter());
 
-            if (data.ContainsKey("nativedate"))
-            {
-                data["nativedate"] = new DateTime(1970, 1, 1).AddMilliseconds((long)data["nativedate"]);
-            }
-            if (data.ContainsKey("nativedatetwo"))
-            {
-                data["nativedatetwo"] = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero).AddMilliseconds((long)data["nativedatetwo"]);
-            }
-
             string template = File.ReadAllText(templateFile).Trim();
 
             try
