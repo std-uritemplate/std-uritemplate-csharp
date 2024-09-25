@@ -119,7 +119,6 @@ public class DictionaryConverter : JsonConverter
             case JsonToken.Boolean:
             case JsonToken.Undefined:
             case JsonToken.Null:
-            case JsonToken.Date:
             case JsonToken.Bytes:
                 return reader.Value;
             default:
