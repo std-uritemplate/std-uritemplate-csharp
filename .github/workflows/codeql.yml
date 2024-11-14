@@ -28,6 +28,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # C# setup
+    - name: C# - Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
