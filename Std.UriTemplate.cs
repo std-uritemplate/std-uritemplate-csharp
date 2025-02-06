@@ -460,7 +460,7 @@ public class UriTemplate
 
     private static bool isNativeType(object value)
     {
-        return value is string or bool or int or long or float or double;
+        return value is string or bool or int or long or float or double or decimal;
     }
 
     private static string convertNativeTypes(object value)
@@ -473,6 +473,7 @@ public class UriTemplate
             long number => number.ToString(CultureInfo.InvariantCulture),
             float number => number.ToString(CultureInfo.InvariantCulture),
             double number => number.ToString(CultureInfo.InvariantCulture),
+            decimal number => number.ToString(CultureInfo.InvariantCulture),
             _ => throw new ArgumentException($"Illegal class passed as substitution, found {value.GetType()}"),
         };
     }
