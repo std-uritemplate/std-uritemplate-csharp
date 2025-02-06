@@ -460,7 +460,7 @@ public class UriTemplate
 
     private static bool isNativeType(object value)
     {
-        return value is string or bool or int or long or float or double;
+        return value is string or bool or int or long or float or double or decimal;
     }
 
     private static string convertNativeTypes(object value)
