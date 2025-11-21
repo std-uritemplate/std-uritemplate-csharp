@@ -15,14 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Common - Checkout main std-uritemplate repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: std-uritemplate/std-uritemplate
           submodules: 'true'
       - name: Fixup the csharp folder
         run: rm -rf csharp
       - name: Common - Checkout the C# implementation
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           path: csharp
       # Language specific setup
