@@ -28,6 +28,35 @@ public class UriTemplate
         AMP
     }
 
+    private static void CheckVarname(string token, int col)
+    {
+        if (token.EndsWith("."))
+        {
+            throw new ArgumentException($"Variable name cannot end with '.' at col:{col}");
+        }
+        if (token.Contains(".."))
+        {
+            throw new ArgumentException($"Variable name cannot contain '..' at col:{col}");
+        }
+        for (int i = 0; i < token.Length; i++)
+        {
+            if (token[i] == '%')
+            {
+                if (i + 2 >= token.Length
+                    || !IsHexDigit(token[i + 1])
+                    || !IsHexDigit(token[i + 2]))
+                {
+                    throw new ArgumentException($"Invalid percent encoding in variable name at col:{col}");
+                }
+            }
+        }
+    }
+
+    private static bool IsHexDigit(char c)
+    {
+        return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
+    }
+
     private static void ValidateLiteral(char c, int col)
     {
         switch (c)
@@ -60,14 +89,27 @@ public class UriTemplate
             return -1;
         }
 
+        string str = buffer.ToString();
+        int result;
         try
         {
-            return int.Parse(buffer.ToString());
+            result = int.Parse(str);
         }
         catch (FormatException)
         {
             throw new ArgumentException($"Cannot parse max chars at col:{col}");
         }
+
+        if (str[0] == '0')
+        {
+            throw new ArgumentException($"Leading zeros are not allowed in max chars at col:{col}");
+        }
+        if (result < 1 || result > 9999)
+        {
+            throw new ArgumentException($"Max chars must be between 1 and 9999 at col:{col}");
+        }
+
+        return result;
     }
 
     private static Operator GetOperator(char c, StringBuilder token, int col)
@@ -114,6 +156,10 @@ public class UriTemplate
                 case '}':
                     if (toToken)
                     {
+                        if (toMaxCharBuffer && maxCharBuffer.Length == 0)
+                        {
+                            throw new ArgumentException($"Empty prefix after colon at col:{i}");
+                        }
                         bool expanded = ExpandToken(op, token.ToString(), composite, GetMaxChar(maxCharBuffer, i), firstToken, substitutions, result, i);
                         if (expanded && firstToken)
                         {
@@ -134,6 +180,10 @@ public class UriTemplate
                 case ',':
                     if (toToken)
                     {
+                        if (toMaxCharBuffer && maxCharBuffer.Length == 0)
+                        {
+                            throw new ArgumentException($"Empty prefix after colon at col:{i}");
+                        }
                         bool expanded = ExpandToken(op, token.ToString(), composite, GetMaxChar(maxCharBuffer, i), firstToken, substitutions, result, i);
                         if (expanded && firstToken)
                         {
@@ -185,7 +235,18 @@ public class UriTemplate
                     }
                     else
                     {
-                        result.Append(character);
+                        if (character > 0x7F)
+                        {
+                            byte[] bytes = Encoding.UTF8.GetBytes(character.ToString());
+                            foreach (byte b in bytes)
+                            {
+                                result.Append($"%{b:X2}");
+                            }
+                        }
+                        else
+                        {
+                            result.Append(character);
+                        }
                     }
                     break;
             }
@@ -312,7 +373,8 @@ public class UriTemplate
     private static void AddExpandedValue(string prefix, object value, StringBuilder result, int maxChar, bool replaceReserved)
     {
         string stringValue = convertNativeTypes(value);
-        int max = (maxChar != -1) ? Math.Min(maxChar, stringValue.Length) : stringValue.Length;
+        int codePointCount = new StringInfo(stringValue).LengthInTextElements;
+        int max = (maxChar != -1) ? Math.Min(maxChar, codePointCount) : codePointCount;
         result.EnsureCapacity(max * 2); // hint to SB
         bool toReserved = false;
         StringBuilder reservedBuffer = new StringBuilder(3);
@@ -322,7 +384,8 @@ public class UriTemplate
             result.Append(prefix);
         }
 
-        for (int i = 0; i < max; i++)
+        int charCount = 0;
+        for (int i = 0; i < stringValue.Length && charCount < max; i++)
         {
             char character = stringValue[i];
 
@@ -334,7 +397,8 @@ public class UriTemplate
 
             var toAppend = character.ToString();
             if (isSurrogate(character)) {
-                toAppend = Uri.EscapeDataString(char.ConvertFromUtf32(char.ConvertToUtf32(stringValue, i++)));
+                toAppend = Uri.EscapeDataString(char.ConvertFromUtf32(char.ConvertToUtf32(stringValue, i)));
+                i++; // skip the low surrogate
             } else if (replaceReserved || isUcschar(character) || isIprivate(character)) {
                 toAppend = Uri.EscapeDataString(toAppend);
             }
@@ -385,6 +449,8 @@ public class UriTemplate
                     result.Append(toAppend);
                 }
             }
+
+            charCount++;
         }
 
         if (toReserved)
@@ -493,6 +559,8 @@ public class UriTemplate
         {
             throw new ArgumentException($"Found an empty token at col:{col}");
         }
+
+        CheckVarname(token, col);
 
         object value;
         substitutions.TryGetValue(token, out value);
