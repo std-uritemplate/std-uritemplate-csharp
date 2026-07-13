@@ -4,6 +4,7 @@ namespace Std;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 public class UriTemplate
@@ -234,9 +235,19 @@ public class UriTemplate
                     }
                     else
                     {
-                        if (character > 0x7F)
+                        if (character > 0x7F || char.IsHighSurrogate(character))
                         {
-                            byte[] bytes = Encoding.UTF8.GetBytes(character.ToString());
+                            string toEncode;
+                            if (char.IsHighSurrogate(character) && i + 1 < str.Length && char.IsLowSurrogate(str[i + 1]))
+                            {
+                                toEncode = str.Substring(i, 2);
+                                i++;
+                            }
+                            else
+                            {
+                                toEncode = character.ToString();
+                            }
+                            byte[] bytes = Encoding.UTF8.GetBytes(toEncode);
                             foreach (byte b in bytes)
                             {
                                 result.Append($"%{b:X2}");
