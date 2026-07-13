@@ -4,7 +4,6 @@ namespace Std;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 
 public class UriTemplate
@@ -373,7 +372,15 @@ public class UriTemplate
     private static void AddExpandedValue(string prefix, object value, StringBuilder result, int maxChar, bool replaceReserved)
     {
         string stringValue = convertNativeTypes(value);
-        int codePointCount = new StringInfo(stringValue).LengthInTextElements;
+        int codePointCount = 0;
+        for (int ci = 0; ci < stringValue.Length; ci++)
+        {
+            if (char.IsHighSurrogate(stringValue[ci]) && ci + 1 < stringValue.Length && char.IsLowSurrogate(stringValue[ci + 1]))
+            {
+                ci++;
+            }
+            codePointCount++;
+        }
         int max = (maxChar != -1) ? Math.Min(maxChar, codePointCount) : codePointCount;
         result.EnsureCapacity(max * 2); // hint to SB
         bool toReserved = false;
