@@ -30,7 +30,11 @@ public class UriTemplate
 
     private static void CheckVarname(string token, int col)
     {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
+        if (token.EndsWith('.'))
+#else
         if (token.EndsWith("."))
+#endif
         {
             throw new ArgumentException($"Variable name cannot end with '.' at col:{col}");
         }
