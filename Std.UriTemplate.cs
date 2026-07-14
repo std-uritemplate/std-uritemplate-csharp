@@ -31,12 +31,12 @@ public class UriTemplate
     private static void CheckVarname(string token, int col)
     {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP2_1_OR_GREATER
-        if (token.EndsWith('.'))
+        if (token.StartsWith('.') || token.EndsWith('.'))
 #else
-        if (token.EndsWith("."))
+        if (token.StartsWith(".") || token.EndsWith("."))
 #endif
         {
-            throw new ArgumentException($"Variable name cannot end with '.' at col:{col}");
+            throw new ArgumentException($"Variable name cannot start or end with '.' at col:{col}");
         }
         if (token.Contains(".."))
         {
