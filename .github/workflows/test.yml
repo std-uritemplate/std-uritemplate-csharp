@@ -15,21 +15,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Common - Checkout main std-uritemplate repo
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: std-uritemplate/std-uritemplate
           submodules: 'true'
       - name: Fixup the csharp folder
         run: rm -rf csharp
       - name: Common - Checkout the C# implementation
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: csharp
       # Language specific setup
 
       # C# setup
       - name: C# - Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 9
 
