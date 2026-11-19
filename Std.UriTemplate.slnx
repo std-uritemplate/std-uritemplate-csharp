@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Std.UriTemplate.csproj" />
+  <Project Path="test/test.csproj" />
+</Solution>
