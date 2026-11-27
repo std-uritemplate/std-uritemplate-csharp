@@ -666,7 +666,10 @@ public class UriTemplate
                     AddSeparator(op, result);
                 }
                 AddValueElement(op, token, (string)v.Key, result, maxChar);
-                result.Append('=');
+                if (op != Operator.SEMICOLON || convertNativeTypes(v.Value) != "")
+                {
+                    result.Append('=');
+                }
             }
             else
             {
