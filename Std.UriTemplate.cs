@@ -370,115 +370,98 @@ public class UriTemplate
         }
     }
 
-    private static bool isSurrogate(char cp) {
-        return (cp >= 0xD800 && cp <= 0xDFFF);
+    private const string HexDigits = "0123456789ABCDEF";
+
+    private static bool IsUnreserved(char c)
+    {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+            || c == '-' || c == '.' || c == '_' || c == '~';
     }
 
-    private static bool isIprivate(char cp) {
-        return (0xE000 <= cp && cp <= 0xF8FF);
+    private static bool IsReserved(char c)
+    {
+        switch (c)
+        {
+            case ':': case '/': case '?': case '#': case '[': case ']': case '@':
+            case '!': case '$': case '&': case '\'': case '(': case ')':
+            case '*': case '+': case ',': case ';': case '=':
+                return true;
+            default:
+                return false;
+        }
     }
 
-    private static bool isUcschar(char cp) {
-        return (0xA0 <= cp && cp <= 0xD7FF)
-                || (0xF900 <= cp && cp <= 0xFDCF)
-                || (0xFDF0 <= cp && cp <= 0xFFEF);
+    private static void AppendPctEncoded(StringBuilder result, int octet)
+    {
+        result.Append('%').Append(HexDigits[octet >> 4]).Append(HexDigits[octet & 0xF]);
     }
 
+    private static void AppendPctEncodedUtf8(StringBuilder result, int cp)
+    {
+        if (cp < 0x80)
+        {
+            AppendPctEncoded(result, cp);
+        }
+        else if (cp < 0x800)
+        {
+            AppendPctEncoded(result, 0xC0 | (cp >> 6));
+            AppendPctEncoded(result, 0x80 | (cp & 0x3F));
+        }
+        else if (cp < 0x10000)
+        {
+            AppendPctEncoded(result, 0xE0 | (cp >> 12));
+            AppendPctEncoded(result, 0x80 | ((cp >> 6) & 0x3F));
+            AppendPctEncoded(result, 0x80 | (cp & 0x3F));
+        }
+        else
+        {
+            AppendPctEncoded(result, 0xF0 | (cp >> 18));
+            AppendPctEncoded(result, 0x80 | ((cp >> 12) & 0x3F));
+            AppendPctEncoded(result, 0x80 | ((cp >> 6) & 0x3F));
+            AppendPctEncoded(result, 0x80 | (cp & 0x3F));
+        }
+    }
+
+    // RFC 6570 section 3.2.1
     private static void AddExpandedValue(string prefix, object value, StringBuilder result, int maxChar, bool replaceReserved)
     {
         string stringValue = convertNativeTypes(value);
-        int codePointCount = 0;
-        for (int ci = 0; ci < stringValue.Length; ci++)
+        int end = stringValue.Length;
+        if (maxChar != -1)
         {
-            if (char.IsHighSurrogate(stringValue[ci]) && ci + 1 < stringValue.Length && char.IsLowSurrogate(stringValue[ci + 1]))
+            end = 0;
+            for (int count = 0; count < maxChar && end < stringValue.Length; count++)
             {
-                ci++;
+                end += char.IsSurrogatePair(stringValue, end) ? 2 : 1;
             }
-            codePointCount++;
         }
-        int max = (maxChar != -1) ? Math.Min(maxChar, codePointCount) : codePointCount;
-        result.EnsureCapacity(max * 2); // hint to SB
-        bool toReserved = false;
-        StringBuilder reservedBuffer = new StringBuilder(3);
 
-        if (max > 0 && prefix != null)
+        if (end > 0 && prefix != null)
         {
             result.Append(prefix);
         }
 
-        int charCount = 0;
-        for (int i = 0; i < stringValue.Length && charCount < max; i++)
+        int i = 0;
+        while (i < end)
         {
             char character = stringValue[i];
-
-            if (character == '%' && !replaceReserved)
+            if (IsUnreserved(character) || (!replaceReserved && IsReserved(character)))
             {
-                toReserved = true;
-                reservedBuffer.Clear();
+                result.Append(character);
+                i++;
             }
-
-            var toAppend = character.ToString();
-            if (isSurrogate(character)) {
-                toAppend = Uri.EscapeDataString(char.ConvertFromUtf32(char.ConvertToUtf32(stringValue, i)));
-                i++; // skip the low surrogate
-            } else if (replaceReserved || isUcschar(character) || isIprivate(character)) {
-                toAppend = Uri.EscapeDataString(toAppend);
-            }
-
-            if (toReserved)
+            else if (!replaceReserved && character == '%' && i + 2 < end
+                && IsHexDigit(stringValue[i + 1]) && IsHexDigit(stringValue[i + 2]))
             {
-                reservedBuffer.Append(toAppend);
-
-                if (reservedBuffer.Length == 3)
-                {
-                    bool isEncoded = false;
-                    try
-                    {
-                        var original = reservedBuffer.ToString();
-                        isEncoded = !original.Equals(Uri.UnescapeDataString(original));
-                    }
-                    catch (Exception)
-                    {
-                        // ignore
-                    }
-
-                    if (isEncoded)
-                    {
-                        result.Append(reservedBuffer);
-                    }
-                    else
-                    {
-                        result.Append("%25");
-                        // only if !replaceReserved
-                        result.Append(reservedBuffer.ToString(1, 2));
-                    }
-                    toReserved = false;
-                    reservedBuffer.Clear();
-                }
+                result.Append(stringValue, i, 3);
+                i += 3;
             }
             else
             {
-                if (character == ' ')
-                {
-                    result.Append("%20");
-                }
-                else if (character == '%')
-                {
-                    result.Append("%25");
-                }
-                else
-                {
-                    result.Append(toAppend);
-                }
+                int cp = char.ConvertToUtf32(stringValue, i);
+                AppendPctEncodedUtf8(result, cp);
+                i += cp > 0xFFFF ? 2 : 1;
             }
-
-            charCount++;
-        }
-
-        if (toReserved)
-        {
-            result.Append("%25");
-            result.Append(reservedBuffer.ToString(1, reservedBuffer.Length - 1));
         }
     }
 
